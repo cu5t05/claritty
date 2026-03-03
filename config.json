@@ -1,0 +1,240 @@
+{
+    "agent_instructions": "You are operating in a restricted shell. No pipes, redirects, or command chaining — | > >> < && || ; are all blocked and will fail validation. No shell expansion or interpolation. Use the do command for all pre-authored actions — never attempt to replicate action logic inline. Use write for file creation and editing, not echo redirection. Use grep on file paths or variables, not piped input. Keep batches focused on the user's explicit request — do not add preparatory reads, cleanup commands, or verification steps the user did not ask for. If a task requires a command not in the whitelist, state that clearly rather than attempting a workaround. Never probe the filesystem to gather context before acting or verify outcomes after — the user provides all necessary information explicitly and exit codes are reported automatically by the shell. Always use ./ prefix for current directory references. Always propose commands in a single sequential code block. Exit code exceptions: diff exits 0 if files are identical, 1 if different (not a failure), 2 if error occurred; grep exits 0 if pattern found, 1 if not found (not a failure), 2 if error occurred. When planning command batches, account for these non-zero success cases — a diff exit code of 1 or grep exit code of 1 indicates successful execution with a specific result, not a command failure that should halt the batch. The agent mode will halt all command batches at non-zero exits, so plan for that.",
+
+    "allowed_directories": [
+        "/Users/c56/workstation/dev/claritty"
+    ],
+    "command_whitelist": {
+        "ls": {
+            "man": "List directory contents. Flags: -l long format, -a include hidden, -la both.",
+            "requires_path": true,
+            "allowed_flags": ["-l", "-a", "-la"],
+            "allows_text": false
+        },
+        "cat": {
+            "man": "Print file contents to terminal. Flags: -n show line numbers.",
+            "requires_path": true,
+            "allowed_flags": ["-n"],
+            "allows_text": false
+        },
+        "grep": {
+            "man": "Search for pattern in file or variable. Usage: grep [flags] pattern target. Flags: -i case-insensitive, -v invert match, -n show line numbers.",
+            "requires_path": true,
+            "allowed_flags": ["-i", "-v", "-n"],
+            "allows_text": true
+        },
+        "echo": {
+            "man": "Print text to terminal.",
+            "requires_path": false,
+            "allowed_flags": [],
+            "allows_text": true
+        },
+        "sed": {
+            "man": "Stream editor for transforming file contents. Usage: sed 's/find/replace/g' ./file.",
+            "requires_path": true,
+            "allowed_flags": [],
+            "allows_text": true
+        },
+        "cd": {
+            "man": "Change working directory. Target must be within whitelisted directories.",
+            "requires_path": true,
+            "allowed_flags": [],
+            "allows_text": false
+        },
+        "pwd": {
+            "man": "Print current working directory.",
+            "requires_path": false,
+            "allowed_flags": [],
+            "allows_text": false
+        },
+        "ping": {
+            "man": "Send ICMP packets to a host. Flags: -c packet count, -i interval seconds, -t TTL.",
+            "requires_path": false,
+            "allowed_flags": ["-c", "-i", "-t"],
+            "allows_text": true
+        },
+        "traceroute": {
+            "man": "Trace network path to a host. Flags: -m max hops, -q queries per hop, -w wait seconds.",
+            "requires_path": false,
+            "allowed_flags": ["-m", "-q", "-w"],
+            "allows_text": true
+        },
+        "whois": {
+            "man": "Query domain or IP registration information.",
+            "requires_path": false,
+            "allowed_flags": [],
+            "allows_text": true
+        },
+        "nslookup": {
+            "man": "Query DNS records for a domain or IP.",
+            "requires_path": false,
+            "allowed_flags": [],
+            "allows_text": true
+        },
+        "head": {
+            "man": "Print first N lines of a file. Flags: -n line count.",
+            "requires_path": true,
+            "allowed_flags": ["-n"],
+            "allows_text": false
+        },
+        "tail": {
+            "man": "Print last N lines of a file. Flags: -n line count.",
+            "requires_path": true,
+            "allowed_flags": ["-n"],
+            "allows_text": false
+        },
+        "write": {
+            "man": "Write content to a file. Usage: write 'hello world' ./file.txt. Multiline: write <<EOF for heredoc. Flags: -n line_number to replace specific line.",
+            "requires_path": true,
+            "allowed_flags": ["-n"],
+            "allows_text": true
+        },
+        "cp": {
+            "man": "Copy file or directory. Both source and destination must be within whitelisted directories. Flags: -r copy directory recursively, -p preserve metadata including timestamps and permissions.",
+            "requires_path": true,
+            "allowed_flags": ["-r", "-p"],
+            "allows_text": false
+        },
+        "diff": {
+            "man": "Compare two files or directories line by line. Both paths must be within whitelisted directories. Flags: -u unified format with context, -r compare directories recursively. Exit status: 0 if inputs are identical, 1 if different, 2 if trouble occurred.",
+            "requires_path": true,
+            "allowed_flags": ["-u", "-r"],
+            "allows_text": false
+        },
+        "mv": {
+            "man": "Move or rename files and directories. Both source and destination must be within whitelisted directories. Unlike cp, mv removes the source — destructive to the original location.",
+            "requires_path": true,
+            "allowed_flags": [],
+            "allows_text": false
+        },
+        "mkdir": {
+            "man": "Create a single directory within whitelisted paths. The parent directory must already exist. If more than two levels of new directories are needed, create the structure manually before starting your session. No flags permitted.",
+            "requires_path": true,
+            "allowed_flags": [],
+            "allows_text": false
+        },
+        "touch": {
+            "man": "Create an empty file or update timestamps within whitelisted paths. Cannot overwrite or alter file content. Useful for initializing files before a write operation. No flags permitted.",
+            "requires_path": true,
+            "allowed_flags": [],
+            "allows_text": false
+        },
+        "wc": {
+            "man": "Count lines, words, or characters in a file. Read-only, no side effects. Flags: -l line count, -w word count, -c character count.",
+            "requires_path": true,
+            "allowed_flags": ["-l", "-w", "-c"],
+            "allows_text": false
+        },
+        "find": {
+            "man": "Search for files within whitelisted directories by name or type. Always include -maxdepth to prevent unbounded traversal. Flags: -name match by filename pattern, -type f for files or d for directories, -maxdepth limit traversal depth. -exec, -delete, and -ok are not permitted.",
+            "requires_path": true,
+            "allowed_flags": ["-name", "-type", "-maxdepth"],
+            "allows_text": true
+        },
+        "sort": {
+            "man": "Sort lines of a file. Read-only, no side effects. Flags: -r reverse order, -n numeric sort, -u unique lines only removing duplicates.",
+            "requires_path": true,
+            "allowed_flags": ["-r", "-n", "-u"],
+            "allows_text": false
+        },
+        "uniq": {
+            "man": "Filter duplicate adjacent lines from a file. Must be used on pre-sorted content — only compares consecutive lines. Flags: -c prefix lines with occurrence count, -d print only duplicate lines.",
+            "requires_path": true,
+            "allowed_flags": ["-c", "-d"],
+            "allows_text": false
+        },
+        "cut": {
+            "man": "Extract fields or character ranges from each line of a file. Read-only, no side effects. Flags: -d delimiter character, -f field number to extract used with -d, -c character position or range.",
+            "requires_path": true,
+            "allowed_flags": ["-d", "-f", "-c"],
+            "allows_text": true
+        },
+        "chmod": {
+            "man": "Change file permissions within whitelisted directories. Use numeric mode only. Examples: 600 private read/write owner only, 644 owner read/write group and other read, 755 owner full access group and other read/execute. Symbolic mode not permitted. OS ownership enforcement applies — chmod will fail if you do not own the file.",
+            "requires_path": true,
+            "allowed_flags": [],
+            "allows_text": true
+        },
+        "do": {
+            "man": "Execute a pre-authored action by name. Usage: do [action] [args]. Args support single quotes and <<EOF for multiline. Actions must be hashed and whitelisted in config.",
+            "requires_path": false,
+            "allowed_flags": [],
+            "allows_text": true
+        }
+    },
+    "actions_whitelist": {
+    "hash": "81216c159edf2d89c7e6e609b958b55be817bfd0eca0b83f2c1bca2040dbcafd",
+    "wronghash": ""
+    },
+    "api_template": {
+        "anthropic": {
+            "url": "https://api.anthropic.com/v1/messages",
+            "models": [
+                "claude-opus-4-5-20251101",
+                "claude-sonnet-4-5-20250929",
+                "claude-haiku-4-5-20251001"
+            ],
+            "request_format": {
+                "model": "{MODEL}",
+                "max_tokens": 2048,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "{PROMPT}"
+                    }
+                ]
+            },
+            "auth_header": "x-api-key",
+            "response_path": ["content", 0, "text"],
+            "optional_headers": {
+                "anthropic-version": "2023-06-01"
+            },
+            "max_calls_per_minute": 10,
+            "token_limit_warning": 100000
+        },
+        "openai": {
+            "url": "https://api.openai.com/v1/chat/completions",
+            "models": [
+                "gpt-4o",
+                "gpt-4-turbo",
+                "gpt-3.5-turbo"
+            ],
+            "request_format": {
+                "model": "{MODEL}",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "{PROMPT}"
+                    }
+                ]
+            },
+            "auth_header": "Authorization",
+            "auth_prefix": "Bearer ",
+            "response_path": ["choices", 0, "message", "content"],
+            "optional_headers": {},
+            "max_calls_per_minute": 10,
+            "token_limit_warning": 100000
+        },
+        "llamacpp": {
+            "url": "http://localhost:8080/v1/chat/completions",
+            "models": [
+                "local-model-gen2",
+                "local-model-gen1"
+            ],
+            "request_format": {
+                "model": "{MODEL}",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "{PROMPT}"
+                    }
+                ]
+            },
+            "auth_header": null,
+            "response_path": ["choices", 0, "message", "content"],
+            "optional_headers": {},
+            "max_calls_per_minute": null,
+            "token_limit_warning": null
+        }
+    }
+}

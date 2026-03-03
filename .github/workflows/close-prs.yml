@@ -1,0 +1,29 @@
+name: Close Unsolicited PRs
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+jobs:
+  close-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Close PR and redirect to Codeberg
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `**This repository is a read-only mirror. Pull requests are not accepted here.**\n\nTo propose a contribution, report a bug, or discuss a security issue, please open a Discussion on Codeberg:\n\n→ **https://codeberg.org/cu5t05/claritty**\n\nAll contributions begin as a conversation, not a code change. Read CONTRIBUTING.md before posting.\n\nIf your direction differs from Claritty's core philosophy, forking is explicitly supported and encouraged under the license.\n\nFor commercial licensing inquiries, reach the maintainer via GitHub or LinkedIn: linkedin.com/in/cu5t05`
+            });
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              state: 'closed'
+            });
