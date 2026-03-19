@@ -14,7 +14,7 @@ This software is dual-licensed. The applicable license depends on your use case:
 - Any use where the software is offered as part of a hosted, managed, or cloud service to third parties
 - Any use not explicitly covered by the MIT License above
 
-If you are uncertain which license applies to your use, contact: [contact@claritty.dev]
+If you are uncertain which license applies to your use, contact: [cu5t05inbox@gmail.com]
 
 ---
 
