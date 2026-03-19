@@ -1,8 +1,8 @@
 {
-    "agent_instructions": "You are operating in a restricted shell. No pipes, redirects, or command chaining — | > >> < && || ; are all blocked and will fail validation. No shell expansion or interpolation. Use the do command for all pre-authored actions — never attempt to replicate action logic inline. Use write for file creation and editing, not echo redirection. Use grep on file paths or variables, not piped input. Keep batches focused on the user's explicit request — do not add preparatory reads, cleanup commands, or verification steps the user did not ask for. If a task requires a command not in the whitelist, state that clearly rather than attempting a workaround. Never probe the filesystem to gather context before acting or verify outcomes after — the user provides all necessary information explicitly and exit codes are reported automatically by the shell. Always use ./ prefix for current directory references. Always propose commands in a single sequential code block. Exit code exceptions: diff exits 0 if files are identical, 1 if different (not a failure), 2 if error occurred; grep exits 0 if pattern found, 1 if not found (not a failure), 2 if error occurred. When planning command batches, account for these non-zero success cases — a diff exit code of 1 or grep exit code of 1 indicates successful execution with a specific result, not a command failure that should halt the batch. The agent mode will halt all command batches at non-zero exits, so plan for that.",
+    "agent_instructions": "You are operating in a restricted shell. You are not allowed to probe system or files ever except for user-provided data. Never rename user-submitted filenames. No pipes, redirects, or command chaining — | > >> < && || ; are all blocked and will fail validation. No shell expansion or interpolation. Absolutely always prioritize minimizing token utilization via local execution of editing and processing of data. If command interacts with paths, always declare paths in either relative (ie: ./, ../) or absolute, never omit paths if command usage requires paths. Use the do command for all pre-authored actions — never attempt to replicate action logic inline. Use write for file creation and editing, not echo redirection. Use grep on file paths or variables, not piped input. Keep batches focused on the user's explicit request — do not add preparatory reads, cleanup commands, or verification steps the user did not ask for. If a task requires a command not in the whitelist, state that clearly rather than attempting a workaround. Never probe the filesystem to gather context before acting or verify outcomes after — the user provides all necessary information explicitly and exit codes are reported automatically by the shell. Always propose commands in a single sequential code block of 30 commands max. Exit code exceptions: diff exits 0 if files are identical, 1 if different (not a failure), 2 if error occurred; grep exits 0 if pattern found, 1 if not found (not a failure), 2 if error occurred. When planning command batches, account for these non-zero success cases — a diff exit code of 1 or grep exit code of 1 indicates successful execution with a specific result, not a command failure that should halt the batch. The agent mode will halt all command batches at non-zero exits, so plan for that.",
 
     "allowed_directories": [
-        "/Users/c56/workstation/dev/claritty"
+        
     ],
     "command_whitelist": {
         "ls": {
@@ -21,6 +21,12 @@
             "man": "Search for pattern in file or variable. Usage: grep [flags] pattern target. Flags: -i case-insensitive, -v invert match, -n show line numbers.",
             "requires_path": true,
             "allowed_flags": ["-i", "-v", "-n"],
+            "allows_text": true
+        },
+        "strfind": {
+            "man": "Search for a multiline pattern in a file and return the line number of the match. Usage: strfind <<EOF ./file.py for heredoc multiline pattern. Returns line number on match, error on no match.",
+            "requires_path": true,
+            "allowed_flags": [],
             "allows_text": true
         },
         "echo": {
@@ -46,6 +52,12 @@
             "requires_path": false,
             "allowed_flags": [],
             "allows_text": false
+        },
+        "curl": {
+            "man": "Transfer data from URLs using HTTP/HTTPS protocols. Read-only mode with download capability. Flags: -I (HEAD request, headers only, no content download), -i (GET request, include headers in output), -o <filename> (download and save to custom filename), -O (download and save with original filename from URL), -s (silent mode, suppress progress bar and errors), -m <seconds> (timeout for entire operation including DNS/connect/transfer), --compressed (request gzip/deflate compression and auto-decompress). No data exfiltration flags allowed.",
+            "requires_path": false,
+            "allowed_flags": ["-I", "-i", "-o", "-O", "-s", "-m", "--compressed"],
+            "allows_text": true
         },
         "ping": {
             "man": "Send ICMP packets to a host. Flags: -c packet count, -i interval seconds, -t TTL.",
@@ -84,7 +96,7 @@
             "allows_text": false
         },
         "write": {
-            "man": "Write content to a file. Usage: write 'hello world' ./file.txt. Multiline: write <<EOF for heredoc. Flags: -n line_number to replace specific line.",
+            "man": "Write content to a file. Usage: write 'hello world' ./file.txt. Multiline: write <<EOF ./file-path.txt for heredoc. Flags: -n line_number to replace specific line, supports \n in content for multiline append after target line. Sequential -n calls for range overwrite. Examples: overwrite file: write 'content' ./file.txt — replace line 5: write -n 5 'replacement' ./file.txt — append lines after line 5: write -n 5 'line5\nnew line' ./file.txt — overwrite range lines 5-7: write -n 5 'content' ./file.txt then write -n 6 'content' ./file.txt then write -n 7 'content' ./file.txt — multiline create: write <<EOF ./file.txt then line1 then line2 then EOF.",
             "requires_path": true,
             "allowed_flags": ["-n"],
             "allows_text": true
@@ -158,83 +170,140 @@
         "do": {
             "man": "Execute a pre-authored action by name. Usage: do [action] [args]. Args support single quotes and <<EOF for multiline. Actions must be hashed and whitelisted in config.",
             "requires_path": false,
-            "allowed_flags": [],
+            "allowed_flags": ["-agent"],
             "allows_text": true
         }
     },
     "actions_whitelist": {
-    "hash": "81216c159edf2d89c7e6e609b958b55be817bfd0eca0b83f2c1bca2040dbcafd",
-    "wronghash": ""
+        "hash": "ebd22008a6c73b00d6979d3bab674552df53598b0935c1ac634660b6037f7195",
+        "sysinfo": "c4ba160882675729023af55396dfc353c789270819aad90594d3681597848647",
+        "actmon": "e0fb13013bc15598c60608706843d739b8093daf891d2646e40c3fe9b37c00c0",
+        "mail": "13a6b32d8a83266ba295100058a8a92d73793dc12ca4613631cc7c364e4216a0",
+        "safari": "cc02f365748e1c402e95cb9349ca6da0ec29723ea51dc7aa4c90eb0860d53377",
+        "sublimetext": "fc08c2ce03203a999444402da6afb9460614fb8d6c56a86a6b59a658f70cc85f",
+        "helloagent": "42c89b819dc22381dabc32f85b4528bc265ab652d935c2eee2cd5f2d5b0a0493",
+        "codemap": "531719a9bf3d3db6d8ff7a4a1a4207cc1d7ec962514e079456b7ec5b1569fd69",
+        "jsonize": "4d31c5ca3a43a212802ed8cc7a09af2fb4854b922b40681d891bf63936d589a4",
+        "wronghash": ""
+    },
+    "actions": {
+        "hash": {
+            "path": "./actions/hash.py",
+            "man": "Hashes a string and prints its SHA-256. Use single quotes or <<EOF for strings containing double quotes. Use <<EOF for multiline input."
+        },
+        "sysinfo": {
+            "path": "./actions/sysinfo.py",
+            "man": "Open System Information on Mac."
+        },
+        "actmon": {
+            "path": "./actions/actmon.py",
+            "man": "Open Activity Monitor on Mac."
+        },
+        "mail": {
+            "path": "./actions/mail.py",
+            "man": "Open Mail on Mac."
+        },
+        "safari": {
+            "path": "./actions/safari.py",
+            "man": "Open Safari on Mac."
+        },
+        "sublimetext": {
+            "path": "./actions/sublimetext.py",
+            "man": "Open Sublime Text on Mac."
+        },
+        "helloagent": {
+            "path": "./actions/helloagent.py",
+            "man": "Agentic action - requires do -agent to run. Test action for -agent flag. Sends hi to the model and prints the response. Usage: do -agent helloagent"
+        },
+        "codemap": {
+            "path": "./actions/codemap.py",
+            "man": "Agentic action - requires do -agent to run. Generate a hash-indexed section map of a source file. Flags: -json sends file to model and produces HASHTABLE.json, -verify validates all section start patterns against source file, -map instruments source with hash markers and TOC producing HASHMAPPED copy, -show prints a single named section from a HASHMAPPED file. Examples: do -agent codemap -json ./file.py | do -agent codemap -verify ./file-HASHTABLE.json ./file.py | do -agent codemap -map ./file.py | do -agent codemap -show ./file-HASHMAPPED.py f3d7h9"
+        },
+        "jsonize": {
+            "path": "./actions/jsonize.py",
+            "man": "JSON formatting and querying tool with two modes. -pretty reads any JSON file and writes a human-readable indented copy to <stem>-PRETTIED.json. -view queries a JSON structure using a colon-separated selector and prints matching values; selector segments are evaluated strictly with no fallbacks — wrong key or out-of-bounds always exits code 1. Four segment types: unquoted string (cve) matches exact dict key; unquoted integer (0) accesses the nth key of a dict or nth item of a list positionally; numeric range (0-4) extracts an inclusive span from either; open-ended range (0-*) extracts from start to last item at runtime; quoted string (\"0\") forces exact string key match, only needed when a dict key is numeric. String and numeric notations are fully interchangeable at any segment — vulnerabilities:0-4:cve:id and 6:0-4:0:3 are identical paths. The ++ operator merges selectors sharing a common prefix: left side of first ++ splits at last colon into prefix and first branch, all ++ right-hand sides are additional branches, each traversed from the same prefix node and printed as label: value with labels auto-derived by resolving each segment to its key name joined by _ — so 6:0-4:0:0++6:0:1 yields id and descriptions_0_value; 0-* works inside ++ as well. Usage: do jsonize -pretty data.json | do jsonize -view data.json vulnerabilities:0:cve:id | do jsonize -view data.json 6:0 | do jsonize -view data.json 6:0-4:0:3 | do jsonize -view data.json vulnerabilities:0-*:cve:id | do jsonize -view data.json 6:0-*:0:0++6:0:1 | do jsonize -view data.json vulnerabilities:0:cve:metrics:0:cvssData:baseScore | do jsonize -view data.json \"0\":nested:key. Typical workflow: run -pretty to reformat and inspect, then -view with string, numeric, or mixed notation — using 0-* when entry count is unknown and ++ when multiple fields per record are needed in one pass."
+        },
+        "wronghash": {
+            "path": "./actions/wronghash.py",
+            "man": "Test action with wrong hash to verify rejection"
+        },
+        "notwhitelisted": {
+            "path": "./actions/notwhitelisted.py",
+            "man": "Test action intentionally excluded from whitelist to verify rejection"
+        }
     },
     "api_template": {
-        "anthropic": {
-            "url": "https://api.anthropic.com/v1/messages",
-            "models": [
-                "claude-opus-4-5-20251101",
-                "claude-sonnet-4-5-20250929",
-                "claude-haiku-4-5-20251001"
-            ],
-            "request_format": {
-                "model": "{MODEL}",
-                "max_tokens": 2048,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": "{PROMPT}"
-                    }
-                ]
-            },
-            "auth_header": "x-api-key",
-            "response_path": ["content", 0, "text"],
-            "optional_headers": {
-                "anthropic-version": "2023-06-01"
-            },
-            "max_calls_per_minute": 10,
-            "token_limit_warning": 100000
+    "anthropic": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "models": [
+            "claude-opus-4-5-20251101",
+            "claude-sonnet-4-5-20250929",
+            "claude-haiku-4-5-20251001"
+        ],
+        "request_format": {
+            "model": "{MODEL}",
+            "max_tokens": 8192,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "{PROMPT}"
+                }
+            ]
         },
-        "openai": {
-            "url": "https://api.openai.com/v1/chat/completions",
-            "models": [
-                "gpt-4o",
-                "gpt-4-turbo",
-                "gpt-3.5-turbo"
-            ],
-            "request_format": {
-                "model": "{MODEL}",
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": "{PROMPT}"
-                    }
-                ]
-            },
-            "auth_header": "Authorization",
-            "auth_prefix": "Bearer ",
-            "response_path": ["choices", 0, "message", "content"],
-            "optional_headers": {},
-            "max_calls_per_minute": 10,
-            "token_limit_warning": 100000
+        "auth_header": "x-api-key",
+        "optional_headers": {
+            "anthropic-version": "2023-06-01"
         },
-        "llamacpp": {
-            "url": "http://localhost:8080/v1/chat/completions",
-            "models": [
-                "local-model-gen2",
-                "local-model-gen1"
-            ],
-            "request_format": {
-                "model": "{MODEL}",
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": "{PROMPT}"
-                    }
-                ]
-            },
-            "auth_header": null,
-            "response_path": ["choices", 0, "message", "content"],
-            "optional_headers": {},
-            "max_calls_per_minute": null,
-            "token_limit_warning": null
-        }
+        "response_path": ["content", 0, "text"],
+        "input_token_path": ["usage", "input_tokens"],
+        "output_token_path": ["usage", "output_tokens"],
+        "max_calls_per_minute": 10
+    },
+    "openai": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "models": [
+            "gpt-4o",
+            "gpt-4-turbo",
+            "gpt-3.5-turbo"
+        ],
+        "request_format": {
+            "model": "{MODEL}",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "{PROMPT}"
+                }
+            ]
+        },
+        "auth_header": "Authorization",
+        "auth_prefix": "Bearer ",
+        "optional_headers": {},
+        "response_path": ["choices", 0, "message", "content"],
+        "input_token_path": ["usage", "prompt_tokens"],
+        "output_token_path": ["usage", "completion_tokens"],
+        "max_calls_per_minute": 10
+    },
+    "local": {
+        "url": "http://localhost:8080/v1/chat/completions",
+        "models": [
+            "local-model-gen2",
+            "local-model-gen1"
+        ],
+        "request_format": {
+            "model": "{MODEL}",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "{PROMPT}"
+                }
+            ]
+        },
+        "auth_header": null,
+        "optional_headers": {},
+        "response_path": ["choices", 0, "message", "content"],
+        "input_token_path": ["usage", "prompt_tokens"],
+        "output_token_path": ["usage", "completion_tokens"],
+        "max_calls_per_minute": null
     }
+}
 }
