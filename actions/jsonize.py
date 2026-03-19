@@ -1,15 +1,41 @@
+# TABLE OF CONTENTS
+# =================
+# k9m2p5 = Import standard library modules for file handling, JSON processing, and command-line argument parsing.
+# x3q7r1 = Define custom exception classes for usage and selector-related errors.
+# w8t4v2 = Define exception class for invalid selector syntax or traversal errors.
+# a6b3c8 = Main entry point that orchestrates argument parsing, JSON loading, and command dispatch with comprehensive error handling.
+# d9e1f4 = Parse and validate command-line arguments for flag and file path.
+# g2h5i7 = Load and parse JSON file with validation of file existence and format.
+# j4k8l1 = Handle pretty-printing of JSON data to a formatted output file.
+# m6n2o9 = Handle JSON view command with selector parsing and optional multi-field support.
+# p5q3r8 = Handle multi-field selector syntax using ++ operator to display multiple branches from a shared prefix node.
+# s1t6u4 = Derive human-readable labels from branches by walking traversal segments and resolving keys and indices.
+# v9w2x7 = Convert selector string into structured traversal segments supporting keys, indices, and ranges.
+# y3z5a1 = Recursively traverse JSON structure using parsed segments with strict type checking and error reporting.
+# b7c4d6 = Script entry point that invokes the main function.
+
+#k9m2p5-start
 import json
 import sys
 from pathlib import Path
+#k9m2p5-end
 
+
+#x3q7r1-start
 class UsageError(Exception):
     """Raised for invalid command-line arguments"""
     pass
+#x3q7r1-end
 
+
+#w8t4v2-start
 class SelectorError(Exception):
     """Raised for invalid selector syntax or traversal errors"""
     pass
+#w8t4v2-end
 
+
+#a6b3c8-start
 def main():
     """Main entry point with error handling"""
     exit_code = 0
@@ -39,7 +65,10 @@ def main():
         exit_code = 1
     finally:
         sys.exit(exit_code)
+#a6b3c8-end
 
+
+#d9e1f4-start
 def parse_args():
     if len(sys.argv) < 3:
         raise UsageError("Missing required arguments")
@@ -56,7 +85,10 @@ def parse_args():
     else:
         selector = None
     return {'flag': flag, 'file': file_path, 'selector': selector}
+#d9e1f4-end
 
+
+#g2h5i7-start
 def load_json(file_path):
     path = Path(file_path)
     if not path.exists():
@@ -65,14 +97,20 @@ def load_json(file_path):
         raise UsageError(f"Not a file: {file_path}")
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
+#g2h5i7-end
 
+
+#j4k8l1-start
 def handle_pretty(file_path, data):
     path = Path(file_path)
     output = path.with_name(path.stem + "-PRETTIED.json")
     with open(output, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2)
     print(f"Written to {output}")
+#j4k8l1-end
 
+
+#m6n2o9-start
 def handle_view(data, selector):
     if '++' in selector:
         handle_view_multi(data, selector)
@@ -86,7 +124,10 @@ def handle_view(data, selector):
             print(json.dumps(result, indent=2))
             if i < len(results) - 1:
                 print("---")
+#m6n2o9-end
 
+
+#p5q3r8-start
 def handle_view_multi(data, selector):
     """Handle ++ multi-field selector.
 
@@ -128,7 +169,10 @@ def handle_view_multi(data, selector):
                 print(f"{label}: {json.dumps(value, indent=2)}")
         if i < len(nodes) - 1:
             print("---")
+#p5q3r8-end
 
+
+#s1t6u4-start
 def resolve_label(node, segments):
     """Derive a human-readable label from a branch by walking segments.
 
@@ -165,7 +209,10 @@ def resolve_label(node, segments):
             end_repr = '*' if seg['end'] is None else seg['end']
             parts.append(f"{seg['start']}_{end_repr}")
     return '_'.join(parts)
+#s1t6u4-end
 
+
+#v9w2x7-start
 def parse_selector(selector):
     """Convert selector string to traversal segments.
 
@@ -214,7 +261,10 @@ def parse_selector(selector):
         raise SelectorError(f"Invalid selector segment: '{seg}'")
 
     return parsed
+#v9w2x7-end
 
+
+#y3z5a1-start
 def traverse(data, segments, depth, path):
     """Recursively navigate JSON structure.
 
@@ -279,6 +329,10 @@ def traverse(data, segments, depth, path):
             raise SelectorError(f"Cannot apply range at '{current_path}' on {type(data).__name__}")
 
     return results
+#y3z5a1-end
 
+
+#b7c4d6-start
 if __name__ == "__main__":
     main()
+#b7c4d6-end
