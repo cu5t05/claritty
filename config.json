@@ -217,7 +217,7 @@
         },
         "codemap": {
             "path": "./actions/codemap.py",
-            "man": "Agentic action - requires do -agent to run. Generate a hash-indexed section map of a source file. Flags: -json sends file to model and produces HASHTABLE.json, -verify validates all section start patterns against source file, -map instruments source with hash markers and TOC producing HASHMAPPED copy, -show prints a single named section from a HASHMAPPED file. Examples: do -agent codemap -json ./file.py | do -agent codemap -verify ./file-HASHTABLE.json ./file.py | do -agent codemap -map ./file.py | do -agent codemap -show ./file-HASHMAPPED.py f3d7h9"
+            "man": "Agentic action — run with do -agent. Hash-indexes source files into navigable section maps. Flags: -json <file> calls model to label sections, writes HASHTABLE.json. -verify <hashtable> <file> validates section boundaries locally, zero inference. -map <file> instruments source with hash markers and TOC, writes HASHMAPPED copy, zero inference. -show <hashmapped> <hash> prints a single section. Chain: -json → -verify → -map. Examples: do -agent codemap -json ./vault.c | do -agent codemap -verify ./vault-HASHTABLE.json ./vault.c | do -agent codemap -map ./vault.c | do -agent codemap -show ./vault-HASHMAPPED.c a1b2c3"
         },
         "jsonize": {
             "path": "./actions/jsonize.py",
