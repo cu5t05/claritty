@@ -10,6 +10,10 @@ Rather than anticipating every use case and baking it in, Claritty opens a door 
 
 The three-file architecture is itself a security statement. A system small enough to read in an afternoon is a system you can actually trust.
 
+WYGIWIG: what you give is what it gets. The model receives exactly what you explicitly send. Nothing is inferred from your environment, nothing is pulled from context you did not provide. This is not a privacy feature, it is the architecture.
+
+Intelligence sovereignty is the goal: a well-planned single automated call over corrective debts driven by ambiguity or absence of expertise. The Codemap action is the clearest example: one API call where the model labels code sections semantically, every subsequent operation local and deterministic. No follow-up calls to clarify, verify, or recover. The intelligence was sovereign from the first invocation.
+
 Security concerns that belong to the OS or deployment layer are intentionally delegated there. Claritty enforces only what an application layer should enforce.
 
 ## Why Claritty
@@ -20,18 +24,18 @@ Every executed command is whitelisted. Every AI-generated action requires explic
 **For environments where accountability matters**
 Claritty's design maps naturally onto the principles that high-accountability environments require: least-privilege access, data minimization, human-in-the-loop controls, and verifiable execution chains. The model reasons and proposes. The human decides. These are not settings, they are the foundation.
 
-Data stays local. The model sees only what you explicitly send it. Command output never enters the AI's context unless you choose to share it. This is not a privacy feature, it is the architecture.
+Data stays local. The model sees only what you explicitly send it. Command output never enters the AI's context unless you choose to share it.
 
 **For developers who want AI assistance without surrendering control**
 Claritty makes AI genuinely useful in sensitive workflows without exposing your system to the model. The model never ingests your filesystem, it only sees what you explicitly feed it. You get the reasoning capability without the access risk, and token usage stays minimal as a direct result.
 
 **For administrators**
-A four-file deployment with no external dependencies, no network calls beyond the AI provider API, and a configuration model that requires no code changes to extend or restrict capability. The entire trust surface is readable in an afternoon.
+A three-file deployment with no external dependencies, no network calls beyond the AI provider API, and a configuration model that requires no code changes to extend or restrict capability. The entire trust surface is readable in an afternoon.
 
 ## Security Foundations
 
 1. User input is handled as raw text, validated before subprocess, no shell expansion possible.
-2. Single whitelisted directory eliminates ambiguity, enforces security inheritance, contains all agentic work within one auditable boundary.
+2. Actions execute within Claritty's current directory implicitly. `allowed_directories` extends that boundary additively: commands may reach additional whitelisted paths without reconfiguring the working directory.
 3. Whitelist is explicit and extensible, constrains without blocking real dev workflows, forces clarity about what the agent actually needs.
 4. Defense in depth: raw text, whitelist, path validation, consent gate, and batch fail-fast are independent choke points.
 5. Chat and shell are separate: model only sees prompts and responses, command outputs never enter chat memory.
@@ -41,20 +45,21 @@ A four-file deployment with no external dependencies, no network calls beyond th
 9. API keys session-only, memory-only, never persisted, masked on entry.
 10. 710 on claritty and chat, 600 on config, 700 on all other shells: logical sandbox through standard Unix permissions, minimal enterprise requirement with high security ROI.
 11. Agentic batch integrity enforced: any single unauthorized command kills the entire batch. No partial execution, no ambiguous state. Either everything runs clean or nothing runs.
-12. Action trust model: every action is SHA-256 hashed and verified before execution. Code changes invalidate the hash. No action runs without explicit user trust.
-13. Model context is explicitly user-controlled, command output never enters AI memory unless the user sends it.
+12. Action trust model: every action is SHA-256 hashed and verified before execution. Hashing is file-based: what you hash is exactly what runs. Code changes invalidate the hash. No action runs without explicit user trust.
+13. WYGIWIG: what you give is what it gets. Model context is explicitly user-controlled, command output never enters AI memory unless the user sends it.
 14. Zero external dependencies eliminates supply chain risk entirely, no dependency chain to audit, poison, or drift.
-15. The entire trust surface is four files. A system you can read completely is a system you can actually trust.
+15. The entire trust surface is three files. A system you can read completely is a system you can actually trust.
 
 ## Architecture
 
-Claritty is built across four files. Each Python file uses a hash-based table of contents for rapid navigation. Sections are bounded by `#hash-start` and `#hash-end` markers, mapped to descriptions in the file header.
+Claritty is built across three files. Each Python file uses a hash-based table of contents for rapid navigation. Sections are bounded by `#hash-start` and `#hash-end` markers, mapped to descriptions in the file header.
 
 Core files:
-- `claritty.py` — main shell, validation pipeline, execution, agent logic
-- `chat.py` — AI conversation module, API abstraction, conversation buffer
-- `config.json` — command whitelist, allowed directories, actions whitelist, configuration
-- `actions.py` — user-defined actions dict, each entry contains code and man keys
+- `claritty.py`: main shell, validation pipeline, execution, agent logic
+- `chat.py`: AI conversation module, API abstraction, conversation buffer
+- `config.json`: command whitelist, allowed directories, actions whitelist, configuration
+
+Actions live in `./actions/` as individual `.py` files, discoverable alongside the core files.
 
 ### claritty.py
 
@@ -67,8 +72,8 @@ parse_command
 Splits raw input into program and argument tokens using shlex. No shell interpretation.
 
 `c5q1p7`
-dir and command whitelists
-Loads allowed directories and command whitelist from config.json at startup.
+config path
+Loads allowed directories, command whitelist, and actions configuration from config.json at startup.
 
 `d9r6t3`
 path resolution and validation
@@ -104,15 +109,19 @@ Captures command output into named session variables. Reusable in subsequent com
 
 `t2x8v3`
 load_actions
-Locates and imports actions.py at runtime using importlib. Returns the module or None if not found. Called on every do invocation, picks up changes without restart.
+Locates action `.py` files in the `./actions/` directory at runtime. Returns available actions on every `do` invocation, picks up new files without restart.
 
 `s5y1u6`
 internal do
-Validates action name, checks whitelist, hashes code value, compares against config, resolves any <<EOF arguments, executes via subprocess with arguments forwarded as argv.
+Validates action name, checks whitelist, SHA-256 hashes the action file, compares against config, resolves any <<EOF arguments, executes via subprocess with arguments forwarded as argv.
 
 `n6h9w4`
 internal grep
 Runs grep against variable contents or file paths. Validates paths before access.
+
+`q1r2s3`
+internal strfind
+Searches for a multiline pattern in a file and returns the line number of the match. Supports heredoc input.
 
 `p8q4r7`
 write function
@@ -180,36 +189,36 @@ Deletes buffer from specified index to end. Always targets even indices to keep 
 save_chat
 Exports buffer to file in terminal display format. Appends .txt if no extension provided.
 
-`e8f9g1`
-eof mode
-Accumulates multiline input between <<EOF and EOF markers, assembles into single prompt before sending.
-
 `y7z8a9`
 entry point
 Module guard, not executed when imported by claritty.py.
 
-### actions.py
-
-Single file in the same directory as claritty.py. Contains one module-level dict named ACTIONS. Each key is the action name. Each value is a dict with two keys: code and man.
-
-code — Python string executed via python3 -c. Arguments passed by the user are forwarded as sys.argv items.
-man — plain English description sent to the agent as context when agent mode is enabled.
-
-Actions support quoted strings and <<EOF heredoc blocks at any argument position. Use single quotes when content contains double quotes. Use <<EOF for multiline input. Each <<EOF token is resolved before execution.
-
 ### config.json
 
-- `allowed_directories` — paths where commands may operate
-- `command_whitelist` — permitted commands, flags, and argument rules including do
-- `actions_whitelist` — maps each action name to the SHA-256 hash of its code value
-- `api_template` — AI provider configuration
+- `allowed_directories`: additional paths where commands may operate, beyond the current working directory
+- `command_whitelist`: permitted commands, flags, and argument rules including do
+- `actions_whitelist`: maps each action name to the SHA-256 hash of its `.py` file
+- `api_template`: AI provider configuration
+
+### actions/
+
+Individual `.py` files in the `./actions/` directory. Each action is a standalone Python script. Arguments passed by the user are forwarded as `sys.argv` items.
+
+Each action has a corresponding entry in `config.json` under `actions` with two keys:
+
+- `path`: path to the `.py` file
+- `man`: plain English description sent to the agent as context when agent mode is enabled
+
+Hashing is file-based. The SHA-256 hash is computed against the `.py` file directly: what you hash is exactly what runs. No string escaping, no embedding concerns, no whitespace mismatches.
+
+Actions support quoted strings and <<EOF heredoc blocks at any argument position. Use single quotes when content contains double quotes. Use <<EOF for multiline input.
 
 ## For Users
 
 Claritty is a restricted shell. This means:
 
 - Only whitelisted commands can run. Commands not on the whitelist will be rejected with an explanation.
-- All file operations are restricted to approved directories. You cannot read or write outside those boundaries.
+- All file operations are restricted to the current working directory and any additionally approved directories. You cannot read or write outside those boundaries.
 - In agent mode, no AI-generated command runs without your explicit review and consent. The model cannot see or influence the consent confirmation.
 - If a command is rejected, Claritty states the reason. Nothing fails silently.
 - In enterprise deployments, session logging may be enabled. If so, all terminal output is recorded to a log file. Your administrator is responsible for informing you when logging is active.
@@ -242,20 +251,21 @@ Failure to notify users of active logging may violate privacy obligations depend
 ### Config
 
 config.json controls:
-- `allowed_directories` — paths where commands may operate
-- `command_whitelist` — permitted commands, flags, and argument rules
-- `actions_whitelist` — trusted actions and their verified hashes
-- `api_template` — AI provider configuration
+- `allowed_directories`: additional paths where commands may operate, beyond the current working directory
+- `command_whitelist`: permitted commands, flags, and argument rules
+- `actions_whitelist`: trusted actions and their verified file hashes
+- `api_template`: AI provider configuration
 
 ### Actions
 
-Actions extend Claritty with user-defined Python scripts. They bypass the command whitelist and directory whitelist by design. Trust is established explicitly via SHA-256 hash verification, not path scope. Review action code before hashing.
+Actions extend Claritty with user-defined Python scripts stored in `./actions/`. They bypass the command whitelist and directory whitelist by design. Trust is established explicitly via SHA-256 hash verification against the action file directly. Review action code before hashing.
 
 To add a new action:
-1. Add an entry to ACTIONS in actions.py with code and man keys
-2. Run `do hash` to compute the hash of the code string
-3. Add the action name and hash to actions_whitelist in config.json
-4. Call `do [name]` — hash check passes, action executes
+1. Drop a `.py` file into `./actions/`
+2. Add an entry to `config.json` under `actions` with `path` and `man` keys
+3. Run `do hash` to compute the SHA-256 of the file
+4. Add the action name and hash to `actions_whitelist` in config.json
+5. Call `do [name]`: hash check passes, action executes
 
 Actions can accept arguments via sys.argv. Use single quotes for strings containing double quotes. Use <<EOF for multiline input.
 
@@ -263,19 +273,19 @@ The included hash action bootstraps the workflow. Its own hash must be computed 
 
 ## Modes
 
-Shell mode — default. Input runs through the validation pipeline before execution. Commands must be whitelisted, paths must be within allowed directories.
+Shell mode: default. Input runs through the validation pipeline before execution. Commands must be whitelisted, paths must be within the current directory or allowed directories.
 
-Chat mode — `:chat` toggles chat backend. All input is sent to the configured AI provider as conversation. `:shell` returns to shell mode.
+Chat mode: `:chat` toggles chat backend. Input accumulates as multiline by default. Type EOF on its own line to send. `:shell` returns to shell mode.
 
-Agent mode — `:agent` inside chat mode enables agentic execution. The AI receives the command whitelist and available actions as context automatically — you do not need to explain available commands to the agent. When the AI generates a code block, Claritty detects it and prompts for consent before execution.
+Agent mode: `:agent` inside chat mode enables agentic execution. The AI receives the command whitelist and available actions as context automatically, you do not need to explain available commands to the agent. When the AI generates a code block, Claritty detects it and prompts for consent before execution.
 
-Var mode — `:var` manages session variables. Variable output can be reused in subsequent commands without shell expansion risks.
+Var mode: `:var` manages session variables. Variable output can be reused in subsequent commands without shell expansion risks.
 
 ## Agent Execution Flow
 
 1. User enables agent with `:agent` inside chat mode
 2. Command whitelist and action list injected into AI context automatically
-3. User converses with AI normally
+3. User converses with AI normally. Input is multiline by default, type EOF on its own line to send
 4. Code block detected in response, prompt: `y to execute, n to abort`
 5. If multiple blocks detected, numbered selection after `y`
 6. Selected block parsed into command list
@@ -286,17 +296,28 @@ Var mode — `:var` manages session variables. Variable output can be reused in 
 11. Batch halts on first failed command
 12. The model never sees the consent number and cannot influence which batch runs
 
+## Capability Hierarchy
+
+Claritty's agentic capability scales in explicit tiers:
+
+- **Actions**: pre-authored, hash-verified scripts. Zero inference, zero data exposure. The model is never invoked.
+- **`-agent` actions**: actions that invoke the model for a bounded, scoped task. One deliberate call, local execution for everything else.
+- **Scoped autonomy**: agent operates within a defined policy boundary with human promotion required to advance.
+- **Continuous autonomous**: fully autonomous operation. Not the default. Requires explicit configuration.
+
+Each tier is an opt-in. You start at the bottom and move up deliberately.
+
 ## Security Model
 
 - `shell=False` throughout, no shell injection possible
 - Whitelist validation before every execution
-- Path validation restricts all operations to approved directories
+- Path validation restricts all operations to current directory and approved directories
 - AI cannot trigger execution, physical keyboard input required at every consent step
 - AI cannot see consent number
 - Consent number is single-use per batch
 - Batch halts on first failure, no cascading damage
-- Actions verified by SHA-256 hash before every execution, code changes invalidate trust
-- Model context is explicitly user-controlled, command output never enters AI memory unless the user sends it
+- Actions verified by SHA-256 hash of the action file before every execution, code changes invalidate trust
+- WYGIWIG: what you give is what it gets. Model context is explicitly user-controlled, command output never enters AI memory unless the user sends it
 
 Security features that belong to the OS such as user isolation, filesystem permissions, and process limits are handled at deployment, not in code.
 
@@ -313,7 +334,7 @@ Variables are session-scoped and cleared on exit. Managed via `:var` mode.
 
 ## Action System
 
-Actions are pre-authored Python scripts stored in actions.py and executed via the do command.
+Actions are pre-authored Python scripts in `./actions/` executed via the do command.
 
 ```
 do hash 'my string'
@@ -323,7 +344,7 @@ content
 EOF
 ```
 
-Each action is verified by SHA-256 hash before execution. Any change to the code string invalidates the hash and rejects the action. Users and agents share the same action interface. The agent calls do [name] like any other command, subject to the same hash verification.
+Each action is verified by SHA-256 hash of the file before execution. Any change to the file invalidates the hash and rejects the action. Users and agents share the same action interface. The agent calls do [name] like any other command, subject to the same hash verification.
 
 ## Session Logging
 
