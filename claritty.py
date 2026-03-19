@@ -16,6 +16,7 @@ m4n8k2 = variable mode
 t2x8v3 = load_actions
 s5y1u6 = internal do
 n6h9w4 = internal grep
+q1r2s3 = internal strfind
 p8q4r7 = internal write
 a9b1c2 = agent mode
 c8d9e1 = current mode
@@ -53,11 +54,12 @@ def parse_command(user_input):
 #b2m8n4-end
 
 #c5q1p7-start
-CONFIG_PATH = "/Users/you/your-work-dir/wherever-has/config.json"
+CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
 with open(CONFIG_PATH, "r") as f:
     _config = json.load(f)
 
-ALLOWED_DIRECTORIES = _config["allowed_directories"]
+CLARITTY_DIR = os.path.dirname(os.path.abspath(__file__))
+ALLOWED_DIRECTORIES = _config["allowed_directories"] + [CLARITTY_DIR]
 COMMAND_WHITELIST = _config["command_whitelist"]
 #c5q1p7-end
 
@@ -110,9 +112,11 @@ def validate_command(program, arguments, current_working_directory):
         
         if arg.startswith("-"):
             # It's a flag - check allowed flags
-            if arg == "-n" and program in ["head", "tail"]:
+            if program == "do":
+                pass  # action flags are validated by the action, not claritty
+            elif arg == "-n" and program in ["head", "tail"]:
                 skip_next = True
-            if arg not in cmd_config["allowed_flags"]:
+            elif arg not in cmd_config["allowed_flags"]:
                 return False, f"Argument not allowed: {arg}"
         elif arg.startswith(("/", "./", "~/", "../")):
             # It's a path - check directory whitelist
@@ -198,6 +202,9 @@ def print_footer(exit_code, start_time):
     print(f"[{start_time} - {end_time}]")
     print("------------")
     print("\n")
+    print("\n")
+    print("\n")
+    print("\n")
 #e2w7q9-end
 
 #i1k4j7-start
@@ -208,6 +215,7 @@ def main_loop():
     q1w2e3 = variable assignment handler
     h3k7m1 = do handler
     r4t5y6 = internal grep handler
+    h5j6k7 = strfind handler
     u7i8o9 = internal write handler
     a2s3d4 = variable substitution handler
     f5g6h7 = internal cd handler
@@ -216,15 +224,25 @@ def main_loop():
     
     global current_mode
     cwd = os.getcwd()
-    eof_mode = False
     eof_array = []
 
     while True:
         try:
             user_input = input()
-        except (EOFError, KeyboardInterrupt):
+        except EOFError:
             print("\n[shell terminated]")
             break
+        except KeyboardInterrupt:
+            if current_mode == "chat":
+                eof_array.clear()
+                print("\n!-Input cancelled-!")
+                print("<<EOF")
+            else:
+                print("\n!-Use :quit to exit-!")
+            continue
+
+        if not user_input.strip():
+            continue
         
         if user_input == ":quit":
             print("[shell terminated]")
@@ -234,7 +252,6 @@ def main_loop():
         if user_input == ":shell":
             current_mode = "shell"
             print("[SHELL]\n")
-            eof_mode = False
             eof_array = []
             continue
         
@@ -250,6 +267,7 @@ def main_loop():
                     print("[CHAT - AGENT ENABLED]\n")
                 else:
                     print("[CHAT]\n")
+            print("<<EOF")
             continue
 
         if user_input == ":agent":
@@ -264,7 +282,7 @@ def main_loop():
                     if actions_module is not None:
                         action_list = "\n".join(
                             f"{name}: {entry['man']}"
-                            for name, entry in actions_module.ACTIONS.items()
+                            for name, entry in actions_module.items()
                         )
                     else:
                         action_list = "None"
@@ -293,32 +311,26 @@ def main_loop():
         
         # chat backend
         if current_mode == "chat":
-
             if user_input == ":set-provider":
                 chat.set_provider()
                 continue
-
             if user_input == ":set-model":
                 chat.set_model()
                 continue
-
             if user_input == ":set-key":
                 chat.set_api_key()
+                print("<<EOF")
                 continue
-
             if user_input == ":buffer":
                 chat.show_buffer()
                 continue
-
             if user_input.startswith(":revert"):
                 chat.revert_command(user_input)
                 continue
-
             if user_input == ":chat-clear":
                 chat.conversation_buffer.clear()
                 print("!-Buffer cleared-!")
                 continue
-
             if user_input.startswith(":save"):
                 parts = user_input.split(maxsplit=1)
                 if len(parts) < 2:
@@ -330,12 +342,17 @@ def main_loop():
                 else:
                     print(f"!-{result}-!")
                 continue
-
-            eof_mode, eof_array, prompt = chat.handle_eof(user_input, eof_mode, eof_array)
-            if prompt is not None:
-                response = chat.send_prompt(prompt)
-                if getattr(main_loop, "agent_enabled", False) and response:
-                    run_agent(response, cwd)
+            if user_input == "EOF":
+                if eof_array:
+                    prompt = "\n".join(eof_array)
+                    eof_array.clear()
+                    entry = chat.send_prompt(prompt)
+                    if getattr(main_loop, "agent_enabled", False) and entry:
+                        run_agent(entry, cwd)
+            else:
+                eof_array.append(user_input)
+            if not eof_array:
+                print("<<EOF")
             continue
         
         # var backend
@@ -469,6 +486,71 @@ def main_loop():
                 print_footer(exit_code, start_time)
                 continue
         #r4t5y6-end
+
+        #h5j6k7-start
+        if program == "strfind":
+            if len(arguments) < 2:
+                start_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+                print("!-strfind requires pattern and file path-!")
+                print_footer(1, start_time)
+                continue
+
+            pattern_arg = None
+            target_path = None
+
+            i = 0
+            while i < len(arguments):
+                arg = arguments[i]
+                if pattern_arg is None:
+                    pattern_arg = arg
+                    i += 1
+                elif target_path is None:
+                    target_path = arg
+                    i += 1
+                else:
+                    start_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+                    print("!-strfind accepts only pattern and file path-!")
+                    print_footer(1, start_time)
+                    continue
+
+            if pattern_arg is None or target_path is None:
+                start_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+                print("!-strfind requires pattern and file path-!")
+                print_footer(1, start_time)
+                continue
+
+            if pattern_arg == "<<EOF":
+                heredoc_lines = []
+                while True:
+                    line = input()
+                    if line == "EOF":
+                        break
+                    heredoc_lines.append(line)
+                pattern = '\n'.join(heredoc_lines)
+            elif pattern_arg.startswith("$"):
+                var_name = pattern_arg[1:]
+                if var_name not in VARIABLES:
+                    start_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+                    print(f"!-Undeclared variable: ${var_name}-!")
+                    print_footer(1, start_time)
+                    continue
+                pattern = VARIABLES[var_name]
+            else:
+                pattern = pattern_arg
+
+            start_time = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+
+            exit_code, result = internal_strfind(pattern, target_path, cwd)
+
+            if exit_code == 0:
+                print("---output---")
+                print(result)
+            else:
+                print(f"!-{result}-!")
+
+            print_footer(exit_code, start_time)
+            continue
+        #h5j6k7-end
         
         #u7i8o9-start
         if program == "write":
@@ -549,6 +631,8 @@ def main_loop():
             print_footer(exit_code, start_time)
             continue
         #u7i8o9-end
+
+
 
         #a2s3d4-start
         try:
@@ -663,49 +747,87 @@ def substitute_variables(arguments):
 
 #t2x8v3-start
 def load_actions():
-    actions_dir = os.path.dirname(os.path.abspath(__file__))
-    actions_path = os.path.join(actions_dir, "actions.py")
-
-    if not os.path.isfile(actions_path):
-        return None
-
-    spec = importlib.util.spec_from_file_location("actions", actions_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    return _config.get("actions")
 #t2x8v3-end
 
 #s5y1u6-start
 def do(action_name, arguments, cwd):
-    # STEP 1 - load actions module
+    current_provider = chat.current_provider
+    current_model = chat.current_model
+    api_keys = chat.api_keys
+    PROVIDERS = chat.PROVIDERS
+    # STEP 1 - detect -agent flag across action_name and arguments
+    agent_mode = False
+    all_args = [action_name] + arguments
+    filtered = []
+    for arg in all_args:
+        if arg == "-agent":
+            agent_mode = True
+        else:
+            filtered.append(arg)
+
+    if not filtered:
+        print("!-do requires an action name-!")
+        return 1
+
+    action_name = filtered[0]
+    arguments   = filtered[1:]
+
+    # STEP 2 - load actions module
     actions_module = load_actions()
     if actions_module is None:
         print("!-actions.py not found-!")
         return 1
 
-    # STEP 2 - look up action by name
-    if action_name not in actions_module.ACTIONS:
+    # STEP 3 - look up action by name
+    if action_name not in actions_module:
         print(f"!-Unknown action: {action_name}-!")
         return 1
-    action = actions_module.ACTIONS[action_name]
+    action = actions_module[action_name]
 
-    # STEP 3 - check actions_whitelist in config
+    # STEP 4 - check actions_whitelist in config
     if action_name not in _config.get("actions_whitelist", {}):
         print(f"!-Action not in whitelist: {action_name}-!")
         return 1
 
-    # STEP 4 - hash code value
-    code_string = action["code"]
-    code_bytes = code_string.encode("utf-8")
+    # STEP 5 - read and hash action script
+    action_path = action["path"]
+    with open(action_path, "r") as f:
+        code_string = f.read()
+    code_bytes    = code_string.encode("utf-8")
     computed_hash = hashlib.sha256(code_bytes).hexdigest()
 
-    # STEP 5 - compare against config hash
+    # STEP 6 - compare against config hash
     expected_hash = _config["actions_whitelist"][action_name]
     if computed_hash != expected_hash:
         print(f"!-Hash mismatch, action rejected: {action_name}-!")
         return 1
 
-    # STEP 6 - resolve any <<EOF arguments
+    # STEP 7 - inject context if agent mode
+    if agent_mode:
+        if current_provider is None or current_model is None:
+            print("!-Agentic actions require provider and model to be set-!")
+            return 1
+        if current_provider != "local" and api_keys.get(current_provider) is None:
+            print("!-Agentic actions require API key to be set-!")
+            return 1
+        provider_config = PROVIDERS[current_provider]
+        context = {
+            "provider":       current_provider,
+            "model":          current_model,
+            "key":            api_keys[current_provider],
+            "endpoint":       provider_config["url"],
+            "request_format": provider_config["request_format"],
+            "auth_header":    provider_config["auth_header"],
+            "auth_prefix":    provider_config.get("auth_prefix", ""),
+            "optional_headers": provider_config.get("optional_headers", {}),
+            "response_path":  provider_config["response_path"],
+            "input_token_path":  provider_config["input_token_path"],
+            "output_token_path": provider_config["output_token_path"]
+        }
+        arguments = [json.dumps(context)] + arguments
+
+    # STEP 8 - resolve any <<EOF arguments
     resolved = []
     for arg in arguments:
         if arg == "<<EOF":
@@ -720,7 +842,7 @@ def do(action_name, arguments, cwd):
             resolved.append(arg)
     arguments = resolved
 
-    # STEP 7 - execute
+    # STEP 9 - execute
     process = subprocess.Popen(
         ["python3", "-c", code_string] + arguments,
         stdout=subprocess.PIPE,
@@ -780,6 +902,37 @@ def internal_grep(pattern, target_text, flags):
     # Return exit code
     return 0 if matches_found > 0 else 1, ""
 #n6h9w4-end
+
+#q1r2s3-start
+def internal_strfind(pattern, file_path, current_working_directory):
+    if not pattern:
+        return 1, "Pattern cannot be empty"
+
+    if not file_path:
+        return 1, "File path is required"
+
+    resolved_path = resolve_path(file_path, current_working_directory)
+
+    if not is_path_allowed(file_path, current_working_directory):
+        return 1, f"Path not allowed: {file_path}"
+
+    if not os.path.exists(resolved_path):
+        return 1, f"File not found: {file_path}"
+
+    try:
+        with open(resolved_path, 'r') as f:
+            content = f.read()
+    except Exception as e:
+        return 1, f"Failed to read file: {str(e)}"
+
+    offset = content.find(pattern)
+
+    if offset == -1:
+        return 1, "Pattern not found"
+
+    line_number = content[:offset].count("\n") + 1
+    return 0, str(line_number)
+#q1r2s3-end
 
 #p8q4r7-start
 def internal_write(content, file_path, line_spec, current_working_directory):
@@ -968,9 +1121,9 @@ def validate_batch(commands, cwd):
 def generate_consent_number():
     return str(random.randint(100, 999))
 
-def run_agent(response_text, cwd):
-    # scan for all code blocks
-    blocks = extract_code_blocks(response_text)
+def run_agent(entry, cwd):
+    # scan for codeblocks
+    blocks = extract_code_blocks(entry["text"])
     if not blocks:
         return
 
@@ -997,8 +1150,9 @@ def run_agent(response_text, cwd):
         print(f"!-{len(blocks)} code blocks detected. Select one:-!")
         print("")
         for i, block in enumerate(blocks):
-            print(f"{i+1}.")
-            for line in block.split("\n"):
+            lines = block.split("\n")
+            print(f"{i+1}. {lines[0]}")
+            for line in lines[1:]:
                 print(f"   {line}")
         print("")
         while True:
@@ -1021,8 +1175,8 @@ def run_agent(response_text, cwd):
     commands = parse_commands(selected_block)
 
     # check cap
-    if len(commands) > 10:
-        print("!-10 commands max per batch-!")
+    if len(commands) > 30:
+        print("!-30 commands max per batch-!")
         return
 
     # validate batch
