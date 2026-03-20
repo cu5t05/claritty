@@ -6,7 +6,7 @@ A portable, zero-dependency Python shell built for controlled human-AI collabora
 
 Most shells are built for unrestricted access and retrofitted with security. Claritty inverts that, restriction is the foundation, not an afterthought. Every command must be whitelisted before it can run. Every AI-generated code block requires human review and consent before execution. The system is designed to keep humans in control while making AI assistance genuinely useful.
 
-Rather than anticipating every use case and baking it in, Claritty opens a door and trusts the user to walk through it responsibly. Capability scales through intent, not complexity. The action system is the clearest expression of this: users define what the system can do, verify it with a hash, and the system trusts it. No feature creep. No inherited complexity.
+Rather than anticipating every use case and baking it in, Claritty opens a door and trusts the user to walk through it responsibly. Capability scales through intent, not complexity. The action system is the clearest expression of this: users define what the system can do, verify it with a hash, and the system trusts it. No feature creep. No inherited complexity. The underlying primitive is scoped inference: the model does what only the model can do, the machine does everything else.
 
 The three-file architecture is itself a security statement. A system small enough to read in an afternoon is a system you can actually trust.
 
