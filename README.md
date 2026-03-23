@@ -1,4 +1,5 @@
 # Claritty
+### Agentic Terminal. Secure By Design. Limitless By You.
 
 Claritty is a zero-dependency agentic terminal built on first principles of security and governance. No supply chain. No MCP. No hooks. No credentials on disk. Every action auditable. Every execution traceable. Compliance with HIPAA, PCI DSS, SOC 2, and FedRAMP satisfied architecturally.
 
