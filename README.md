@@ -1,6 +1,6 @@
 # Claritty
 
-A portable, zero-dependency Python shell built for controlled human-AI collaboration. Claritty gives users and AI agents access to local systems through a configurable command whitelist, with every execution requiring explicit human consent.
+Claritty is a zero-dependency agentic terminal built on first principles of security and governance. No supply chain. No MCP. No hooks. No credentials on disk. Every action auditable. Every execution traceable. Compliance with HIPAA, PCI DSS, SOC 2, and FedRAMP satisfied architecturally.
 
 ## Philosophy
 
